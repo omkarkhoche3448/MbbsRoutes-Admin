@@ -116,9 +116,9 @@ const StudentTable = () => {
     return student;
   });
 
-  console.log('Students data:', students);
-  console.log('Loading state:', isFetching);
-  console.log('Error state:', isError);
+  // console.log('Students data:', students);
+  // console.log('Loading state:', isFetching);
+  // console.log('Error state:', isError);
 
   useEffect(() => {
     if (students.length > 0) {
