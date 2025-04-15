@@ -1,4 +1,5 @@
 import { Calendar, Home, Inbox, Search, Settings } from "lucide-react"
+import { useNotifications } from "@/app/NotificationContext";
 
 import {
   Sidebar,
@@ -41,9 +42,25 @@ const items = [
 ]
 
 export function AppSidebar() {
+  const { notifications, removeNotification } = useNotifications();
   return (
     <Sidebar>
       <SidebarContent>
+        {/* Notification section */}
+        {notifications.length > 0 && (
+          <div style={{ padding: 8 }}>
+            {notifications.map(n => (
+              <div key={n._id} style={{ background: "#fffbe6", marginBottom: 8, padding: 8, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span>
+                  New student entry: {n.name || n.email || n._id}
+                </span>
+                <button style={{ marginLeft: 8 }} onClick={() => removeNotification(n._id)}>
+                  Mark as read
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <SidebarGroup>
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarGroupContent>

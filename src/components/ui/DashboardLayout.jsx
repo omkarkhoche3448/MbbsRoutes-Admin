@@ -18,11 +18,19 @@ import { Sheet, SheetContent, SheetTrigger } from "./sheet"
 import { useToast } from "@/hooks/use-toast"
 import { useEffect, useState } from "react"
 import { Button } from "./button"
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "./dropdown-menu"
+import { useUser, useClerk } from '@clerk/clerk-react';
 
 const DashboardLayout = ({ children }) => {
   const { theme, setTheme } = useTheme()
   const { toast } = useToast()
   const [mounted, setMounted] = useState(false)
+  const { user } = useUser();
+  const { signOut } = useClerk();
+
+  // Get user role from Clerk publicMetadata
+  const userRole = user?.publicMetadata?.role || "user";
+  const isAdmin = userRole === "admin";
 
   useEffect(() => {
     setMounted(true)
@@ -121,38 +129,52 @@ const DashboardLayout = ({ children }) => {
                   {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </Button>
               )}
+              {/* Show user role if available (uncomment to display) */}
+              {/* {user && (
+                <span className="text-xs text-muted-foreground mr-2">Role: {userRole}</span>
+              )} */}
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm" className="relative">
                     <BellRing className="h-4 w-4" />
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">3</span>
+                    {/* Notification badge can be dynamically set here if needed */}
                     <span className="ml-2 hidden sm:inline">Notifications</span>
                   </Button>
                 </SheetTrigger>
                 <SheetContent>
                   <div className="space-y-4 py-4">
                     <h3 className="font-medium text-lg">Notifications</h3>
-                    <div className="border rounded-md p-3 bg-muted/50">
-                      <h4 className="font-medium">New Student Enrolled</h4>
-                      <p className="text-sm text-muted-foreground">Atharva from Maharashtra has enrolled for MBBS in Russia</p>
-                      <p className="text-xs text-muted-foreground mt-1">2 hours ago</p>
-                    </div>
-                    <div className="border rounded-md p-3 bg-muted/50">
-                      <h4 className="font-medium">Missed Call</h4>
-                      <p className="text-sm text-muted-foreground">Missed call from Rahul - 9876543210</p>
-                      <p className="text-xs text-muted-foreground mt-1">Yesterday</p>
-                    </div>
-                    <div className="border rounded-md p-3 bg-muted/50">
-                      <h4 className="font-medium">Call Scheduled</h4>
-                      <p className="text-sm text-muted-foreground">Follow-up call with Priya scheduled for tomorrow</p>
-                      <p className="text-xs text-muted-foreground mt-1">Yesterday</p>
-                    </div>
-                    <Button className="w-full" variant="outline" onClick={simulateNewEnrollment}>
-                      Simulate New Enrollment
-                    </Button>
+                    {/* Real notifications should be rendered here in the future */}
+                    <div className="text-muted-foreground text-sm">No notifications yet.</div>
                   </div>
                 </SheetContent>
               </Sheet>
+              {/* User Profile Dropdown */}
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="relative">
+                      {user.imageUrl ? (
+                        <img src={user.imageUrl} alt="avatar" className="rounded-full w-8 h-8 object-cover" />
+                      ) : (
+                        <span className="rounded-full w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground font-bold">
+                          {user.firstName?.[0] || user.emailAddress?.[0] || 'U'}
+                        </span>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <div className="px-2 py-1.5 text-sm font-medium">
+                      {user.fullName || user.emailAddress}
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => window.location.href = '/profile'}>
+                      Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => signOut()}>Logout</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
           <main className="p-6">{children}</main>
