@@ -45,7 +45,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { useQuery } from "@tanstack/react-query"
-import { fetchStudents } from "@/services/api"
+import { useFetchStudents } from "@/services/api"
 
 // Constants for filter options
 export const preferredCountries = [
@@ -88,12 +88,21 @@ const StudentTable = () => {
   const [countryFilter, setCountryFilter] = useState("all");
   const [callStatusFilter, setCallStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState(undefined);
-  const [isLoading, setIsLoading] = useState(true);
   const [localCallStatuses, setLocalCallStatuses] = useState({});
 
-  const { data: students = [], isLoading: isFetching, isError, refetch } = useQuery({
+  const fetchStudents = useFetchStudents();  // Using the updated hook
+  
+  const { data: students = [], isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['students'],
-    queryFn: fetchStudents
+    queryFn: fetchStudents,
+    refetchOnWindowFocus: false,
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch students data",
+        variant: "destructive",
+      });
+    }
   });
 
   // Load saved call statuses from localStorage on component mount
@@ -104,7 +113,7 @@ const StudentTable = () => {
     }
   }, []);
 
-  // Apply local call statuses to students data
+  // Apply local call statuses to decrypted students data
   const studentsWithLocalStatus = students.map(student => {
     if (localCallStatuses[student._id]) {
       return {
@@ -113,18 +122,16 @@ const StudentTable = () => {
         lastCallDate: localCallStatuses[student._id].date
       };
     }
-    return student;
+    return {
+      ...student,
+      callStatus: 'not-called',
+      lastCallDate: null
+    };
   });
 
   // console.log('Students data:', students);
   // console.log('Loading state:', isFetching);
   // console.log('Error state:', isError);
-
-  useEffect(() => {
-    if (students.length > 0) {
-      setIsLoading(false);
-    }
-  }, [students]);
 
   const calculateStatistics = () => {
     if (!students.length) return { totalStudents: 0, avgNeetScore: 0, newThisMonth: 0, topCountry: "N/A" };
@@ -214,7 +221,7 @@ const StudentTable = () => {
         <Info className="h-4 w-4" />
         <AlertTitle>Error</AlertTitle>
         <AlertDescription>
-          Failed to fetch students. Please check your connection and try again.
+          Failed to fetch or decrypt students data. Please try again.
         </AlertDescription>
       </Alert>
     );
@@ -274,7 +281,7 @@ const StudentTable = () => {
               size="sm" 
               onClick={() => refetch()} 
               className="mt-2 sm:mt-0"
-              disabled={isFetching}
+              disabled={isFetching}  
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
               Refresh

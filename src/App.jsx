@@ -1,14 +1,12 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import { SignedIn, SignedOut, RedirectToSignIn, SignUp, useUser } from '@clerk/clerk-react';
-import { SignIn } from '@clerk/clerk-react';
-import { useEffect, useState } from 'react';
-import Profile from './pages/Profile';
+import { SignedIn, SignedOut, SignIn, useUser } from "@clerk/clerk-react";
+import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
 
@@ -27,12 +25,32 @@ const App = () => (
                     <Index />
                   </SignedIn>
                   <SignedOut>
-                    <RedirectToSignIn />
+                    <Navigate to="/sign-in" replace />
                   </SignedOut>
                 </>
               }
             />
-            <Route path="/sign-in/*" element={<SignIn routing="path" path="/sign-in" />} />
+            <Route
+              path="/sign-in/*"
+              element={
+                <div className="flex min-h-screen items-center justify-center">
+                  <SignIn
+                    routing="path"
+                    path="/sign-in"
+                    signUpUrl={null}
+                    afterSignInUrl="/"
+                    appearance={{
+                      elements: {
+                        footerAction: { display: "none" },
+                        card: {
+                          boxShadow: "none"
+                        }
+                      },
+                    }}
+                  />
+                </div>
+              }
+            />
             <Route
               path="/profile"
               element={
