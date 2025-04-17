@@ -86,6 +86,7 @@ const StudentTable = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [stateFilter, setStateFilter] = useState("all");
+  const [districtFilter, setDistrictFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
   const [callStatusFilter, setCallStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState(undefined);
@@ -209,11 +210,12 @@ const StudentTable = () => {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.contact.includes(searchQuery);
     const matchesState = stateFilter === "all" || student.state === stateFilter;
+    const matchesDistrict = districtFilter === "all" || student.district === districtFilter;
     const matchesCountry = countryFilter === "all" || student.preferredCountry === countryFilter;
     const matchesCallStatus = callStatusFilter === "all" || student.callStatus === callStatusFilter;
     const matchesDate = !dateFilter || format(new Date(student.submittedAt), 'yyyy-MM-dd') === format(dateFilter, 'yyyy-MM-dd');
 
-    return matchesSearch && matchesState && matchesCountry && matchesCallStatus && matchesDate;
+    return matchesSearch && matchesState && matchesDistrict && matchesCountry && matchesCallStatus && matchesDate;
   });
 
   if (isError) {
@@ -300,7 +302,7 @@ const StudentTable = () => {
               />
             </div>
             
-            <div className="flex flex-nowrap overflow-x-auto gap-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4">
+            <div className="flex flex-nowrap overflow-x-auto gap-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-5">
               <div className="min-w-[160px] sm:min-w-0">
                 <Select value={stateFilter} onValueChange={setStateFilter}>
                   <SelectTrigger className="w-full">
@@ -311,6 +313,19 @@ const StudentTable = () => {
                     {indianStates.map((state) => (
                       <SelectItem key={state} value={state}>{state}</SelectItem>
                     ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="min-w-[160px] sm:min-w-0">
+                <Select value={districtFilter} onValueChange={setDistrictFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by District" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Districts</SelectItem>
+                    <SelectItem value="Pune">Pune</SelectItem>
+                    {/* Add more districts as needed */}
                   </SelectContent>
                 </Select>
               </div>
@@ -387,6 +402,7 @@ const StudentTable = () => {
               <Button variant="outline" onClick={() => {
                 setSearchQuery("");
                 setStateFilter("all");
+                setDistrictFilter("all");
                 setCountryFilter("all");
                 setCallStatusFilter("all");
                 setDateFilter(undefined);
@@ -404,6 +420,8 @@ const StudentTable = () => {
                         <TableHead className="w-[200px]">Name</TableHead>
                         <TableHead className="w-[120px]">Contact</TableHead>
                         <TableHead className="w-[120px]">State</TableHead>
+                        <TableHead className="w-[120px]">District</TableHead>
+                        <TableHead className="w-[120px]">Interested In</TableHead>
                         <TableHead className="w-[100px]">NEET Score</TableHead>
                         <TableHead className="w-[120px]">Preferred Country</TableHead>
                         <TableHead className="w-[150px]">Selected Counsellor</TableHead>
@@ -418,6 +436,8 @@ const StudentTable = () => {
                           <TableCell className="font-medium">{student.name}</TableCell>
                           <TableCell className="whitespace-nowrap">{student.contact}</TableCell>
                           <TableCell className="whitespace-nowrap">{student.state}</TableCell>
+                          <TableCell className="whitespace-nowrap">{student.district}</TableCell>
+                          <TableCell className="whitespace-nowrap">{student.interestedIn}</TableCell>
                           <TableCell>{student.neetScore}</TableCell>
                           <TableCell className="whitespace-nowrap">{student.preferredCountry}</TableCell>
                           <TableCell className="whitespace-nowrap">{student.preferredCounsellor || 'Not Assigned'}</TableCell>
