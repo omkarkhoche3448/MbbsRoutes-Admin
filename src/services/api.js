@@ -1,11 +1,10 @@
 import { useAuth } from '@clerk/clerk-react';
+import { CryptoService } from '../utils/crypto';
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
-// Create a function that takes the token as a parameter
 export const fetchStudentsAPI = async (token) => {
   try {
-    // Initial request to get encrypted data
     const response = await fetch(`${BASE_URL}/api/v1/consultation/all`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -20,30 +19,20 @@ export const fetchStudentsAPI = async (token) => {
 
     const result = await response.json();
     
-    // Verify the response is encrypted
     if (!result.encrypted || !result.data) {
       throw new Error('Invalid response format from server');
     }
 
-    // Decrypt the data
-    const decryptResponse = await fetch(`${BASE_URL}/api/v1/consultation/decrypt`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ encryptedData: result.data })
-    });
-
-    if (!decryptResponse.ok) {
-      const errorData = await decryptResponse.json();
-      throw new Error(errorData.message || "Failed to decrypt data");
+    // Decrypt data locally using Web Crypto API
+    const decryptedData = await CryptoService.decrypt(result.data);
+    
+    // Ensure we return the data array from the decrypted response
+    if (decryptedData.success && Array.isArray(decryptedData.data)) {
+      return decryptedData.data;
+    } else {
+      throw new Error('Invalid data structure in decrypted response');
     }
 
-    const decryptedData = await decryptResponse.json();
-    
-    // Return the data array from the decrypted response
-    return decryptedData.data;
   } catch (error) {
     console.error("Error in fetchStudentsAPI:", error);
     throw error;
