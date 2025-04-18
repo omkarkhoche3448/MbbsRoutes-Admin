@@ -46,6 +46,7 @@ import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { useQuery } from "@tanstack/react-query"
 import { useFetchStudents } from "@/services/api"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 // Constants for filter options
 export const preferredCountries = [
@@ -229,8 +230,8 @@ const StudentTable = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
             <Users2 className="h-4 w-4 text-muted-foreground" />
@@ -240,7 +241,7 @@ const StudentTable = () => {
             <p className="text-xs text-muted-foreground">Registered students</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Average NEET Score</CardTitle>
             <FileBarChart className="h-4 w-4 text-muted-foreground" />
@@ -250,7 +251,7 @@ const StudentTable = () => {
             <p className="text-xs text-muted-foreground">Points</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Top Country</CardTitle>
             <GraduationCap className="h-4 w-4 text-muted-foreground" />
@@ -260,7 +261,7 @@ const StudentTable = () => {
             <p className="text-xs text-muted-foreground">Most preferred</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">New This Month</CardTitle>
             <Users2 className="h-4 w-4 text-muted-foreground" />
@@ -289,80 +290,88 @@ const StudentTable = () => {
           </div>
           
           <div className="flex flex-col space-y-4 mt-4">
-            <div className="relative">
+            <div className="relative w-full">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or contact..."
-                className="pl-8"
+                className="pl-8 w-full"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              <Select value={stateFilter} onValueChange={setStateFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by State" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All States</SelectItem>
-                  {indianStates.map((state) => (
-                    <SelectItem key={state} value={state}>{state}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-nowrap overflow-x-auto gap-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4">
+              <div className="min-w-[160px] sm:min-w-0">
+                <Select value={stateFilter} onValueChange={setStateFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by State" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All States</SelectItem>
+                    {indianStates.map((state) => (
+                      <SelectItem key={state} value={state}>{state}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               
-              <Select value={countryFilter} onValueChange={setCountryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by Country" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Countries</SelectItem>
-                  {preferredCountries.map((country) => (
-                    <SelectItem key={country} value={country}>{country}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="min-w-[160px] sm:min-w-0">
+                <Select value={countryFilter} onValueChange={setCountryFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by Country" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Countries</SelectItem>
+                    {preferredCountries.map((country) => (
+                      <SelectItem key={country} value={country}>{country}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               
-              <Select value={callStatusFilter} onValueChange={setCallStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Filter by Call Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {callStatusOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="min-w-[160px] sm:min-w-0">
+                <Select value={callStatusFilter} onValueChange={setCallStatusFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by Call Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {callStatusOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left font-normal">
-                    <Filter className="mr-2 h-4 w-4" />
-                    {dateFilter ? format(dateFilter, "PPP") : "Filter by Date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dateFilter}
-                    onSelect={setDateFilter}
-                    initialFocus
-                  />
-                  {dateFilter && (
-                    <div className="p-2 border-t border-border">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setDateFilter(undefined)}
-                        className="w-full"
-                      >
-                        Clear Date
-                      </Button>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
+              <div className="min-w-[160px] sm:min-w-0">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <Filter className="mr-2 h-4 w-4" />
+                      {dateFilter ? format(dateFilter, "PPP") : "Filter by Date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateFilter}
+                      onSelect={setDateFilter}
+                      initialFocus
+                    />
+                    {dateFilter && (
+                      <div className="p-2 border-t border-border">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => setDateFilter(undefined)}
+                          className="w-full"
+                        >
+                          Clear Date
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -387,66 +396,74 @@ const StudentTable = () => {
             </div>
           ) : (
             <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/50">
-                    <TableHead>Name</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>State</TableHead>
-                    <TableHead>NEET Score</TableHead>
-                    <TableHead>Preferred Country</TableHead>
-                    <TableHead>Call Status</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredStudents.map((student) => (
-                    <TableRow key={student._id}>
-                      <TableCell className="font-medium">{student.name}</TableCell>
-                      <TableCell>{student.contact}</TableCell>
-                      <TableCell>{student.state}</TableCell>
-                      <TableCell>{student.neetScore}</TableCell>
-                      <TableCell>{student.preferredCountry}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          {getCallStatusIcon(student.callStatus)}
-                          {getCallStatusBadge(student.callStatus)}
-                        </div>
-                      </TableCell>
-                      <TableCell>{new Date(student.submittedAt).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleUpdateCallStatus(student._id, 'completed')}>
-                              <PhoneCall className="mr-2 h-4 w-4 text-green-500" />
-                              Mark as Completed
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateCallStatus(student._id, 'missed')}>
-                              <PhoneMissed className="mr-2 h-4 w-4 text-red-500" />
-                              Mark as Missed
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUpdateCallStatus(student._id, 'scheduled')}>
-                              <Phone className="mr-2 h-4 w-4 text-blue-500" />
-                              Schedule Call
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <ScrollArea className="w-full">
+                <div className="min-w-[1000px]"> {/* Minimum width to prevent squishing */}
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead className="w-[200px]">Name</TableHead>
+                        <TableHead className="w-[120px]">Contact</TableHead>
+                        <TableHead className="w-[120px]">State</TableHead>
+                        <TableHead className="w-[100px]">NEET Score</TableHead>
+                        <TableHead className="w-[120px]">Preferred Country</TableHead>
+                        <TableHead className="w-[150px]">Selected Counsellor</TableHead>
+                        <TableHead className="w-[120px]">Call Status</TableHead>
+                        <TableHead className="w-[100px]">Submitted</TableHead>
+                        <TableHead className="w-[80px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredStudents.map((student) => (
+                        <TableRow key={student._id}>
+                          <TableCell className="font-medium">{student.name}</TableCell>
+                          <TableCell className="whitespace-nowrap">{student.contact}</TableCell>
+                          <TableCell className="whitespace-nowrap">{student.state}</TableCell>
+                          <TableCell>{student.neetScore}</TableCell>
+                          <TableCell className="whitespace-nowrap">{student.preferredCountry}</TableCell>
+                          <TableCell className="whitespace-nowrap">{student.preferredCounsellor || 'Not Assigned'}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-2">
+                              {getCallStatusIcon(student.callStatus)}
+                              {getCallStatusBadge(student.callStatus)}
+                            </div>
+                          </TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {new Date(student.submittedAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handleUpdateCallStatus(student._id, 'completed')}>
+                                  <PhoneCall className="mr-2 h-4 w-4 text-green-500" />
+                                  Mark as Completed
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateCallStatus(student._id, 'missed')}>
+                                  <PhoneMissed className="mr-2 h-4 w-4 text-red-500" />
+                                  Mark as Missed
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleUpdateCallStatus(student._id, 'scheduled')}>
+                                  <Phone className="mr-2 h-4 w-4 text-blue-500" />
+                                  Schedule Call
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </ScrollArea>
             </div>
           )}
         </CardContent>

@@ -18,6 +18,7 @@ const StudentTable = ({ students }) => {
           <th>Contact</th>
           <th>State</th>
           <th>Interested In</th>
+          <th>Selected Counsellor</th>
         </tr>
       </thead>
       <tbody>
@@ -27,6 +28,7 @@ const StudentTable = ({ students }) => {
             <td>{student.contact}</td>
             <td>{student.state}</td>
             <td>{student.interestedIn}</td>
+            <td>{student.selectedCounsellor || 'Not Assigned'}</td>
           </tr>
         ))}
       </tbody>
