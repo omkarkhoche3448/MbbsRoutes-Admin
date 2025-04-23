@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from "react"
+import { FixedSizeList as List } from 'react-window';
 import {
   Table,
   TableBody,
@@ -40,7 +41,8 @@ import {
   RefreshCw,
   Search,
   Users2,
-  MessageSquare
+  MessageSquare,
+  Download
 } from "lucide-react"
 import { CallStatusDialog } from "./CallStatusDialog"
 import { CallNotesDialog } from "./CallNotesDialog"
@@ -50,9 +52,10 @@ import { useToast } from "@/hooks/use-toast"
 import { useQuery } from "@tanstack/react-query"
 import { useFetchStudents } from "@/services/api"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { 
-  preferredCountries, 
-  indianStates, 
+import ExcelJS from 'exceljs';
+import {
+  preferredCountries,
+  indianStates,
   districtsByState,
   callStatusOptions,
   interestedInOptions
@@ -71,8 +74,9 @@ const StudentTable = () => {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isCallStatusDialogOpen, setIsCallStatusDialogOpen] = useState(false);
   const [isCallNotesDialogOpen, setIsCallNotesDialogOpen] = useState(false);
+  const [selectedStudentsSet, setSelectedStudentsSet] = useState(new Set());
 
-  const fetchStudents = useFetchStudents(); 
+  const fetchStudents = useFetchStudents();
 
   const { data: students = [], isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['students'],
@@ -88,25 +92,34 @@ const StudentTable = () => {
   });
 
   // Set default call status if not present
-  const studentsWithDefaultStatus = students.map(student => {
-    return {
+  // Memoize students with default status to prevent unnecessary recalculations
+  const studentsWithDefaultStatus = useMemo(() => {
+    return students.map(student => ({
       ...student,
       callStatus: student.callStatus || 'NOT_CALLED',
       lastCalledAt: student.lastCalledAt || null,
       callNotes: student.callNotes || ''
-    };
-  });
+    }));
+  }, [students]);
 
-  // console.log('Students data:', students);
-  // console.log('Loading state:', isFetching);
-  // console.log('Error state:', isError);
-
+  // Improve the calculateStatistics function to handle NaN values
   const calculateStatistics = () => {
     if (!students.length) return { totalStudents: 0, avgNeetScore: 0, newThisMonth: 0, topCountry: "N/A" };
-
+  
     const totalStudents = students.length;
-    const totalNeetScore = students.reduce((acc, student) => acc + Number(student.neetScore), 0);
-    const avgNeetScore = Math.round(totalNeetScore / totalStudents);
+    
+    // Handle potential NaN in NEET scores
+    const validNeetScores = students.filter(student => 
+      !isNaN(Number(student.neetScore)) && student.neetScore !== null && student.neetScore !== ''
+    );
+    
+    const totalNeetScore = validNeetScores.reduce((acc, student) => 
+      acc + Number(student.neetScore), 0
+    );
+    
+    const avgNeetScore = validNeetScores.length > 0 
+      ? Math.round(totalNeetScore / validNeetScores.length) 
+      : 0;
 
     const now = new Date();
     const newThisMonth = students.filter(student => {
@@ -118,16 +131,20 @@ const StudentTable = () => {
     const countryCounts = {};
     students.forEach(student => {
       const country = student.preferredCountry === "No Idea/ Want More Information" ? "Seeking Guidance" : student.preferredCountry;
-      countryCounts[country] = (countryCounts[country] || 0) + 1;
+      if (country) { // Make sure country is not null or undefined
+        countryCounts[country] = (countryCounts[country] || 0) + 1;
+      }
     });
 
-    const topCountry = Object.entries(countryCounts)
-      .sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A";
+    const topCountry = Object.entries(countryCounts).length > 0
+      ? Object.entries(countryCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || "N/A"
+      : "N/A";
 
     return { totalStudents, avgNeetScore, newThisMonth, topCountry };
   };
 
-  const stats = calculateStatistics();
+  // Memoize the stats calculation to prevent unnecessary recalculations
+  const stats = useMemo(() => calculateStatistics(), [students]);
 
   const getCallStatusBadge = (status) => {
     switch (status) {
@@ -188,6 +205,138 @@ const StudentTable = () => {
     return counsellors;
   };
 
+  // Add handlers for checkbox selection
+  const handleSelectAll = useCallback((e) => {
+    if (e.target.checked) {
+      // Create a new Set directly from filtered student IDs
+      const newSet = new Set(filteredStudents.map(student => student._id));
+      setSelectedStudentsSet(newSet);
+    } else {
+      setSelectedStudentsSet(new Set());
+    }
+  }, [filteredStudents]);
+
+  // Optimize individual selection with useCallback
+  const handleSelectStudent = useCallback((studentId, checked) => {
+    setSelectedStudentsSet(prev => {
+      const newSet = new Set(prev);
+      if (checked) {
+        newSet.add(studentId);
+      } else {
+        newSet.delete(studentId);
+      }
+      return newSet;
+    });
+  }, []);
+
+  // Add the missing clearSelections function
+  const clearSelections = useCallback(() => {
+    setSelectedStudentsSet(new Set());
+  }, []);
+
+  // Memoize the selected students array conversion
+  const selectedStudents = useMemo(() => 
+    Array.from(selectedStudentsSet), 
+    [selectedStudentsSet]
+  );
+
+  // Memoize the "all selected" state
+  const allSelected = useMemo(() => 
+    filteredStudents.length > 0 && selectedStudentsSet.size === filteredStudents.length,
+    [filteredStudents.length, selectedStudentsSet.size]
+  );
+
+  // Add Excel export function
+  const exportToExcel = async () => {
+    const studentsToExport = filteredStudents.filter(student =>
+      selectedStudentsSet.has(student._id)
+    );
+
+    if (studentsToExport.length === 0) {
+      toast({
+        title: "No students selected",
+        description: "Please select at least one student to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create a new workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Students');
+
+    // Define columns
+    worksheet.columns = [
+      { header: 'ID', key: 'id', width: 28 },
+      { header: 'Name', key: 'name', width: 20 },
+      { header: 'Contact', key: 'contact', width: 15 },
+      { header: 'State', key: 'state', width: 15 },
+      { header: 'District', key: 'district', width: 15 },
+      { header: 'Interested In', key: 'interestedIn', width: 15 },
+      { header: 'NEET Score', key: 'neetScore', width: 12 },
+      { header: 'Preferred Country', key: 'preferredCountry', width: 18 },
+      { header: 'Preferred Counsellor', key: 'preferredCounsellor', width: 20 },
+      { header: 'Call Status', key: 'callStatus', width: 15 },
+      { header: 'Last Called At', key: 'lastCalledAt', width: 20 },
+      { header: 'Call Notes', key: 'callNotes', width: 30 },
+      { header: 'Submitted At', key: 'submittedAt', width: 20 },
+    ];
+
+    // Add data rows
+    studentsToExport.forEach(student => {
+      worksheet.addRow({
+        id: student._id,
+        name: student.name || '',
+        contact: student.contact || '',
+        state: student.state || '',
+        district: student.district || '',
+        interestedIn: student.interestedIn || '',
+        neetScore: student.neetScore ? student.neetScore.toString() : '',
+        preferredCountry: student.preferredCountry === "No Idea/ Want More Information" 
+          ? "Seeking Guidance" 
+          : (student.preferredCountry || ''),
+        preferredCounsellor: student.preferredCounsellor || 'Not Assigned',
+        callStatus: student.callStatus || 'NOT_CALLED',
+        lastCalledAt: student.lastCalledAt ? new Date(student.lastCalledAt).toLocaleString() : '',
+        callNotes: student.callNotes || '',
+        submittedAt: student.submittedAt ? new Date(student.submittedAt).toLocaleString() : ''
+      });
+    });
+
+    // Style the header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE0E0E0' }
+    };
+
+    try {
+      // Generate buffer
+      const buffer = await workbook.xlsx.writeBuffer();
+
+      // Create blob and download
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `students_export_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: `Successfully exported ${studentsToExport.length} students`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export students data",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isError) {
     return (
       <Alert variant="destructive">
@@ -216,6 +365,34 @@ const StudentTable = () => {
         onClose={() => setIsCallNotesDialogOpen(false)}
         student={selectedStudent}
       />
+
+      {/* Export button and selection counter */}
+      <div className="flex justify-between items-center">
+        <div>
+          <span className="mr-2 font-medium">
+            {selectedStudentsSet.size} of {filteredStudents.length} selected
+          </span>
+          {selectedStudentsSet.size > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearSelections}
+              className="ml-2"
+            >
+              Cancel All Selections
+            </Button>
+          )}
+        </div>
+        <Button
+          onClick={exportToExcel}
+          disabled={selectedStudentsSet.size === 0}
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Export Selected to Excel
+        </Button>
+      </div>
+
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -311,10 +488,10 @@ const StudentTable = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Districts</SelectItem>
-                    {stateFilter !== "all" && districtsByState[stateFilter] ? 
+                    {stateFilter !== "all" && districtsByState[stateFilter] ?
                       districtsByState[stateFilter].map((district) => (
                         <SelectItem key={district} value={district}>{district}</SelectItem>
-                      )) : 
+                      )) :
                       null
                     }
                   </SelectContent>
@@ -341,6 +518,7 @@ const StudentTable = () => {
                     <SelectValue placeholder="Filter by Call Status" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="all">All Call Statuses</SelectItem>
                     {callStatusOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                     ))}
@@ -409,7 +587,7 @@ const StudentTable = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -439,7 +617,7 @@ const StudentTable = () => {
                   Showing <span className="font-medium">{filteredStudents.length}</span> of <span className="font-medium">{students.length}</span> students
                 </span>
                 {(searchQuery || stateFilter !== "all" || districtFilter !== "all" ||
-                  countryFilter !== "all" || callStatusFilter !== "all" || counsellorFilter !== "all" || 
+                  countryFilter !== "all" || callStatusFilter !== "all" || counsellorFilter !== "all" ||
                   interestedInFilter !== "all" || dateFilter) && (
                     <Button
                       variant="ghost"
@@ -465,6 +643,15 @@ const StudentTable = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
+                        <TableHead className="w-[50px]">
+                          <input
+                            type="checkbox"
+                            className="h-5 w-5 rounded border-2 border-gray-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            checked={filteredStudents.length > 0 && selectedStudentsSet.size === filteredStudents.length}
+                            onChange={handleSelectAll}
+                            style={{ accentColor: '#2563eb' }}
+                          />
+                        </TableHead>
                         <TableHead className="w-[200px]">Name</TableHead>
                         <TableHead className="w-[120px]">Contact</TableHead>
                         <TableHead className="w-[120px]">State</TableHead>
@@ -479,57 +666,69 @@ const StudentTable = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredStudents.map((student) => (
-                        <TableRow key={student._id}>
-                          <TableCell className="font-medium">{student.name}</TableCell>
-                          <TableCell className="whitespace-nowrap">{student.contact}</TableCell>
-                          <TableCell className="whitespace-nowrap">{student.state}</TableCell>
-                          <TableCell className="whitespace-nowrap">{student.district}</TableCell>
-                          <TableCell className="whitespace-nowrap">{student.interestedIn}</TableCell>
-                          <TableCell>{student.neetScore}</TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            {student.preferredCountry === "No Idea/ Want More Information"
-                              ? "Seeking Guidance"
-                              : student.preferredCountry}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">{student.preferredCounsellor || 'Not Assigned'}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              {getCallStatusIcon(student.callStatus)}
-                              {getCallStatusBadge(student.callStatus)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap">
-                            {new Date(student.submittedAt).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleOpenCallStatusDialog(student)}>
-                                  <PhoneCall className="mr-2 h-4 w-4 text-green-500" />
-                                  Update Call Status
-                                </DropdownMenuItem>
-                                {student.callNotes && (
-                                  <DropdownMenuItem onClick={() => handleOpenCallNotesDialog(student)}>
-                                    <MessageSquare className="mr-2 h-4 w-4 text-blue-500" />
-                                    View Call Notes
+                      {filteredStudents.map((student) => {
+                        const isSelected = selectedStudentsSet.has(student._id);
+                        return (
+                          <TableRow key={student._id}>
+                            <TableCell>
+                              <input
+                                type="checkbox"
+                                className="h-5 w-5 rounded border-2 border-gray-400 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                checked={isSelected}
+                                onChange={(e) => handleSelectStudent(student._id, e.target.checked)}
+                                style={{ accentColor: '#2563eb' }}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium">{student.name}</TableCell>
+                            <TableCell className="whitespace-nowrap">{student.contact}</TableCell>
+                            <TableCell className="whitespace-nowrap">{student.state}</TableCell>
+                            <TableCell className="whitespace-nowrap">{student.district}</TableCell>
+                            <TableCell className="whitespace-nowrap">{student.interestedIn}</TableCell>
+                            <TableCell>{student.neetScore ? student.neetScore.toString() : ''}</TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {student.preferredCountry === "No Idea/ Want More Information"
+                                ? "Seeking Guidance"
+                                : student.preferredCountry}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">{student.preferredCounsellor || 'Not Assigned'}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                {getCallStatusIcon(student.callStatus)}
+                                {getCallStatusBadge(student.callStatus)}
+                              </div>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              {new Date(student.submittedAt).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Details
                                   </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleOpenCallStatusDialog(student)}>
+                                    <PhoneCall className="mr-2 h-4 w-4 text-green-500" />
+                                    Update Call Status
+                                  </DropdownMenuItem>
+                                  {student.callNotes && (
+                                    <DropdownMenuItem onClick={() => handleOpenCallNotesDialog(student)}>
+                                      <MessageSquare className="mr-2 h-4 w-4 text-blue-500" />
+                                      View Call Notes
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -539,7 +738,7 @@ const StudentTable = () => {
         </CardContent>
       </Card>
     </div>
-  )
-}
+  );
+};
 
 export default StudentTable
