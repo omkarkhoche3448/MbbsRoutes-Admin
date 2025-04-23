@@ -518,7 +518,7 @@ const StudentTable = () => {
                     <SelectValue placeholder="Filter by Call Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Call Statuses</SelectItem>
+                    <SelectItem value="all">All </SelectItem>
                     {callStatusOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                     ))}
@@ -742,3 +742,27 @@ const StudentTable = () => {
 };
 
 export default StudentTable
+
+const getCallStatusBadge = (status) => {
+  switch (status) {
+    case "NOT_CALLED": return <Badge variant="outline">Not Called</Badge>;
+    case "MISSED": return <Badge variant="destructive">Missed</Badge>;
+    case "DEAD_LEADS": return <Badge className="bg-gray-500">Dead Leads</Badge>;
+    case "SCHEDULED": return <Badge className="bg-blue-500">Scheduled</Badge>;
+    case "COMPLETED": return <Badge className="bg-green-500">Completed</Badge>;
+    case "GOING_ABROAD": return <Badge className="bg-purple-500">Going Abroad</Badge>;
+    default: return <Badge variant="outline">Unknown</Badge>;
+  }
+};
+
+const getCallStatusIcon = (status) => {
+  switch (status) {
+    case "NOT_CALLED": return <Phone className="h-4 w-4 text-gray-500" />;
+    case "MISSED": return <PhoneMissed className="h-4 w-4 text-red-500" />;
+    case "DEAD_LEADS": return <Phone className="h-4 w-4 text-gray-500" />;
+    case "SCHEDULED": return <Phone className="h-4 w-4 text-blue-500" />;
+    case "COMPLETED": return <PhoneCall className="h-4 w-4 text-green-500" />;
+    case "GOING_ABROAD": return <Phone className="h-4 w-4 text-purple-500" />;
+    default: return <Phone className="h-4 w-4" />;
+  }
+};

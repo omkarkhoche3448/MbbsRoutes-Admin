@@ -31,11 +31,11 @@ export function CallNotesDialog({ isOpen, onClose, student }) {
           <div className="mb-4">
             <div className="text-sm font-medium mb-1">Call Status</div>
             <div className="text-sm">
+              {student.callStatus === "MISSED" && "Missed"}
+              {student.callStatus === "DEAD_LEADS" && "Dead Leads"}
+              {student.callStatus === "SCHEDULED" && "Scheduled"}
               {student.callStatus === "COMPLETED" && "Completed"}
-              {student.callStatus === "NO_RESPONSE" && "No Response"}
-              {student.callStatus === "CALLBACK_REQUESTED" && "Callback Requested"}
-              {student.callStatus === "CALLED" && "Called"}
-              {student.callStatus === "NOT_CALLED" && "Not Called"}
+              {student.callStatus === "GOING_ABROAD" && "Going Abroad"}
             </div>
           </div>
           

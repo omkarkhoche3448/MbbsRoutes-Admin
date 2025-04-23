@@ -235,10 +235,11 @@ export const districtsByState = {
 export const callStatusOptions = [
     { value: "all", label: "Call Statuses" },
     { value: "NOT_CALLED", label: "Not Called" },
-    { value: "CALLED", label: "Called" },
-    { value: "NO_RESPONSE", label: "No Response" },
-    { value: "CALLBACK_REQUESTED", label: "Callback Requested" },
+    { value: "MISSED", label: "Missed" },
+    { value: "DEAD_LEADS", label: "Dead Leads" },
+    { value: "SCHEDULED", label: "Scheduled" },
     { value: "COMPLETED", label: "Completed" },
+    { value: "GOING_ABROAD", label: "Going Abroad" },
 ];
 
 export const interestedInOptions = [
