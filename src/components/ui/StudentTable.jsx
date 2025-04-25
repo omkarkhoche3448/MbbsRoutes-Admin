@@ -39,8 +39,11 @@ import {
   PhoneMissed, 
   RefreshCw, 
   Search, 
-  Users2 
+  Users2,
+  MessageSquare
 } from "lucide-react"
+import { CallStatusDialog } from "./CallStatusDialog"
+import { CallNotesDialog } from "./CallNotesDialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
@@ -75,11 +78,11 @@ export const indianStates = [
 
 const callStatusOptions = [
   { value: "all", label: "All Statuses" },
-  { value: "not-called", label: "Not Called" },
-  { value: "called", label: "Called" },
-  { value: "missed", label: "Missed" },
-  { value: "scheduled", label: "Scheduled" },
-  { value: "completed", label: "Completed" },
+  { value: "NOT_CALLED", label: "Not Called" },
+  { value: "CALLED", label: "Called" },
+  { value: "NO_RESPONSE", label: "No Response" },
+  { value: "CALLBACK_REQUESTED", label: "Callback Requested" },
+  { value: "COMPLETED", label: "Completed" },
 ];
 
 const StudentTable = () => {
@@ -90,7 +93,9 @@ const StudentTable = () => {
   const [countryFilter, setCountryFilter] = useState("all");
   const [callStatusFilter, setCallStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState(undefined);
-  const [localCallStatuses, setLocalCallStatuses] = useState({});
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [isCallStatusDialogOpen, setIsCallStatusDialogOpen] = useState(false);
+  const [isCallNotesDialogOpen, setIsCallNotesDialogOpen] = useState(false);
 
   const fetchStudents = useFetchStudents();  // Using the updated hook
   
@@ -107,27 +112,13 @@ const StudentTable = () => {
     }
   });
 
-  // Load saved call statuses from localStorage on component mount
-  useEffect(() => {
-    const savedStatuses = localStorage.getItem('studentCallStatuses');
-    if (savedStatuses) {
-      setLocalCallStatuses(JSON.parse(savedStatuses));
-    }
-  }, []);
-
-  // Apply local call statuses to decrypted students data
-  const studentsWithLocalStatus = students.map(student => {
-    if (localCallStatuses[student._id]) {
-      return {
-        ...student,
-        callStatus: localCallStatuses[student._id].status,
-        lastCallDate: localCallStatuses[student._id].date
-      };
-    }
+  // Set default call status if not present
+  const studentsWithDefaultStatus = students.map(student => {
     return {
       ...student,
-      callStatus: 'not-called',
-      lastCallDate: null
+      callStatus: student.callStatus || 'NOT_CALLED',
+      lastCalledAt: student.lastCalledAt || null,
+      callNotes: student.callNotes || ''
     };
   });
 
@@ -166,47 +157,41 @@ const StudentTable = () => {
 
   const getCallStatusBadge = (status) => {
     switch (status) {
-      case "completed": return <Badge className="bg-green-500">Completed</Badge>;
-      case "missed": return <Badge variant="destructive">Missed</Badge>;
-      case "scheduled": return <Badge className="bg-blue-500">Scheduled</Badge>;
-      case "called": return <Badge className="bg-yellow-500">Called</Badge>;
+      case "COMPLETED": return <Badge className="bg-green-500">Completed</Badge>;
+      case "NO_RESPONSE": return <Badge variant="destructive">No Response</Badge>;
+      case "CALLBACK_REQUESTED": return <Badge className="bg-blue-500">Callback Requested</Badge>;
+      case "CALLED": return <Badge className="bg-yellow-500">Called</Badge>;
       default: return <Badge variant="outline">Not Called</Badge>;
     }
   };
 
   const getCallStatusIcon = (status) => {
     switch (status) {
-      case "completed": return <PhoneCall className="h-4 w-4 text-green-500" />;
-      case "missed": return <PhoneMissed className="h-4 w-4 text-red-500" />;
-      case "scheduled": return <Phone className="h-4 w-4 text-blue-500" />;
-      case "called": return <Phone className="h-4 w-4 text-yellow-500" />;
+      case "COMPLETED": return <PhoneCall className="h-4 w-4 text-green-500" />;
+      case "NO_RESPONSE": return <PhoneMissed className="h-4 w-4 text-red-500" />;
+      case "CALLBACK_REQUESTED": return <Phone className="h-4 w-4 text-blue-500" />;
+      case "CALLED": return <Phone className="h-4 w-4 text-yellow-500" />;
       default: return <Phone className="h-4 w-4 text-gray-500" />;
     }
   };
 
-  const handleUpdateCallStatus = (studentId, status) => {
-    const newStatuses = {
-      ...localCallStatuses,
-      [studentId]: {
-        status: status,
-        date: new Date().toISOString()
-      }
-    };
-    
-    // Update state
-    setLocalCallStatuses(newStatuses);
-    
-    // Save to localStorage
-    localStorage.setItem('studentCallStatuses', JSON.stringify(newStatuses));
-    
-    toast({
-      title: "Call Status Updated",
-      description: `Student call status updated to ${status}`,
-    });
+  const handleOpenCallStatusDialog = (student) => {
+    setSelectedStudent(student);
+    setIsCallStatusDialogOpen(true);
   };
 
-  // Use the modified students array with local statuses for filtering
-  const filteredStudents = studentsWithLocalStatus.filter(student => {
+  const handleOpenCallNotesDialog = (student) => {
+    setSelectedStudent(student);
+    setIsCallNotesDialogOpen(true);
+  };
+
+  const handleCallStatusUpdated = () => {
+    // Refetch students data to get the updated call status
+    refetch();
+  };
+
+  // Use the students array with default statuses for filtering
+  const filteredStudents = studentsWithDefaultStatus.filter(student => {
     const matchesSearch = student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.contact.includes(searchQuery);
     const matchesState = stateFilter === "all" || student.state === stateFilter;
@@ -232,6 +217,20 @@ const StudentTable = () => {
 
   return (
     <div className="space-y-6">
+      {/* Call Status Dialog */}
+      <CallStatusDialog
+        isOpen={isCallStatusDialogOpen}
+        onClose={() => setIsCallStatusDialogOpen(false)}
+        student={selectedStudent}
+        onStatusUpdated={handleCallStatusUpdated}
+      />
+      
+      {/* Call Notes Dialog */}
+      <CallNotesDialog
+        isOpen={isCallNotesDialogOpen}
+        onClose={() => setIsCallNotesDialogOpen(false)}
+        student={selectedStudent}
+      />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -463,18 +462,16 @@ const StudentTable = () => {
                                   View Details
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleUpdateCallStatus(student._id, 'completed')}>
+                                <DropdownMenuItem onClick={() => handleOpenCallStatusDialog(student)}>
                                   <PhoneCall className="mr-2 h-4 w-4 text-green-500" />
-                                  Mark as Completed
+                                  Update Call Status
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleUpdateCallStatus(student._id, 'missed')}>
-                                  <PhoneMissed className="mr-2 h-4 w-4 text-red-500" />
-                                  Mark as Missed
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleUpdateCallStatus(student._id, 'scheduled')}>
-                                  <Phone className="mr-2 h-4 w-4 text-blue-500" />
-                                  Schedule Call
-                                </DropdownMenuItem>
+                                {student.callNotes && (
+                                  <DropdownMenuItem onClick={() => handleOpenCallNotesDialog(student)}>
+                                    <MessageSquare className="mr-2 h-4 w-4 text-blue-500" />
+                                    View Call Notes
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </TableCell>

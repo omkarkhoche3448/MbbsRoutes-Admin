@@ -1,11 +1,11 @@
 import { useAuth } from '@clerk/clerk-react';
 import { CryptoService } from '../utils/crypto';
 
-const BASE_URL = import.meta.env.VITE_BASE_URL;
+export const API_BASE_URL = import.meta.env.VITE_BASE_URL;
 
 export const fetchStudentsAPI = async (token) => {
   try {
-    const response = await fetch(`${BASE_URL}/api/v1/consultation/all`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/consultation/all`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
