@@ -92,6 +92,7 @@ const StudentTable = () => {
   const [districtFilter, setDistrictFilter] = useState("all");
   const [countryFilter, setCountryFilter] = useState("all");
   const [callStatusFilter, setCallStatusFilter] = useState("all");
+  const [counsellorFilter, setCounsellorFilter] = useState("all"); // Add this line
   const [dateFilter, setDateFilter] = useState(undefined);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [isCallStatusDialogOpen, setIsCallStatusDialogOpen] = useState(false);
@@ -198,10 +199,21 @@ const StudentTable = () => {
     const matchesDistrict = districtFilter === "all" || student.district === districtFilter;
     const matchesCountry = countryFilter === "all" || student.preferredCountry === countryFilter;
     const matchesCallStatus = callStatusFilter === "all" || student.callStatus === callStatusFilter;
+    const matchesCounsellor = counsellorFilter === "all" || student.preferredCounsellor === counsellorFilter; // Add this line
     const matchesDate = !dateFilter || format(new Date(student.submittedAt), 'yyyy-MM-dd') === format(dateFilter, 'yyyy-MM-dd');
 
-    return matchesSearch && matchesState && matchesDistrict && matchesCountry && matchesCallStatus && matchesDate;
+    return matchesSearch && matchesState && matchesDistrict && matchesCountry && matchesCallStatus && matchesCounsellor && matchesDate; // Update this line
   });
+
+  // Add a function to get unique counsellors from the students data
+  const getUniqueCounsellors = () => {
+    if (!students.length) return [];
+    const counsellors = students
+      .map(student => student.preferredCounsellor)
+      .filter(Boolean) // Remove null/undefined values
+      .filter((value, index, self) => self.indexOf(value) === index); // Get unique values
+    return counsellors;
+  };
 
   if (isError) {
     return (
@@ -355,6 +367,20 @@ const StudentTable = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="min-w-[160px] sm:min-w-0">
+                <Select value={counsellorFilter} onValueChange={setCounsellorFilter}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by Counsellor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Counsellors</SelectItem>
+                    {getUniqueCounsellors().map((counsellor) => (
+                      <SelectItem key={counsellor} value={counsellor}>{counsellor}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               
               <div className="min-w-[160px] sm:min-w-0">
                 <Popover>
@@ -404,6 +430,7 @@ const StudentTable = () => {
                 setDistrictFilter("all");
                 setCountryFilter("all");
                 setCallStatusFilter("all");
+                setCounsellorFilter("all");
                 setDateFilter(undefined);
               }}>
                 Clear Filters
@@ -411,6 +438,31 @@ const StudentTable = () => {
             </div>
           ) : (
             <div className="rounded-md border">
+              {/* Add this div to show the count of filtered students */}
+              <div className="p-2 bg-muted/20 border-b flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">
+                  Showing <span className="font-medium">{filteredStudents.length}</span> of <span className="font-medium">{students.length}</span> students
+                </span>
+                {(searchQuery || stateFilter !== "all" || districtFilter !== "all" || 
+                  countryFilter !== "all" || callStatusFilter !== "all" || counsellorFilter !== "all" || dateFilter) && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => {
+                      setSearchQuery("");
+                      setStateFilter("all");
+                      setDistrictFilter("all");
+                      setCountryFilter("all");
+                      setCallStatusFilter("all");
+                      setCounsellorFilter("all");
+                      setDateFilter(undefined);
+                    }}
+                    className="text-xs"
+                  >
+                    Clear Filters
+                  </Button>
+                )}
+              </div>
               <ScrollArea className="w-full">
                 <div className="min-w-[1000px]"> {/* Minimum width to prevent squishing */}
                   <Table>
@@ -438,7 +490,11 @@ const StudentTable = () => {
                           <TableCell className="whitespace-nowrap">{student.district}</TableCell>
                           <TableCell className="whitespace-nowrap">{student.interestedIn}</TableCell>
                           <TableCell>{student.neetScore}</TableCell>
-                          <TableCell className="whitespace-nowrap">{student.preferredCountry}</TableCell>
+                          <TableCell className="whitespace-nowrap">
+                            {student.preferredCountry === "No Idea/ Want More Information" 
+                              ? "Seeking Guidance" 
+                              : student.preferredCountry}
+                          </TableCell>
                           <TableCell className="whitespace-nowrap">{student.preferredCounsellor || 'Not Assigned'}</TableCell>
                           <TableCell>
                             <div className="flex items-center space-x-2">
