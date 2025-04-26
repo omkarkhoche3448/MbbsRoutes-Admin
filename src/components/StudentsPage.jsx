@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFetchStudents } from '../services/api';
 import StudentTable from './StudentTable';
+import DashboardLayout from '@/components/ui/DashboardLayout';
 
 const StudentsPage = () => {
   const [students, setStudents] = useState([]);
@@ -38,10 +39,17 @@ const StudentsPage = () => {
     loadStudents();
   }, [fetchStudents]);
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <DashboardLayout><div className="p-4">Loading...</div></DashboardLayout>;
+  if (error) return <DashboardLayout><div className="p-4 text-red-500">Error: {error}</div></DashboardLayout>;
 
-  return <StudentTable students={students} districts={districts} />;
+  return (
+    <DashboardLayout>
+      <div className="p-4">
+        <h1 className="text-2xl font-bold mb-4">Students</h1>
+        <StudentTable students={students} districts={districts} />
+      </div>
+    </DashboardLayout>
+  );
 };
 
 export default StudentsPage;
