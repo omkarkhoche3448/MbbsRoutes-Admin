@@ -83,22 +83,6 @@ const DashboardLayout = ({ children }) => {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a href="/students" className="flex items-center">
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Students</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <a href="/calls" className="flex items-center">
-                        <Phone className="mr-2 h-4 w-4" />
-                        <span>Call Tracking</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
                       <a href="/notifications" className="flex items-center">
                         <BellRing className="mr-2 h-4 w-4" />
                         <span>Notifications</span>
@@ -181,7 +165,7 @@ const DashboardLayout = ({ children }) => {
         </div>
       </div>
     </SidebarProvider>
-  )
-}
+  );
+};
 
-export default DashboardLayout
+export default DashboardLayout;

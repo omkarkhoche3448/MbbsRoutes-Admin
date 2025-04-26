@@ -10,6 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const StudentTable = ({ students, districts }) => {
   const [selectedStudents, setSelectedStudents] = useState([]);
@@ -137,11 +138,16 @@ const StudentTable = ({ students, districts }) => {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-[50px]">
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    <Checkbox
                       checked={selectedStudents.length === students.length && students.length > 0}
-                      onChange={handleSelectAll}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedStudents(students.map(student => student._id));
+                        } else {
+                          setSelectedStudents([]);
+                        }
+                      }}
+                      aria-label="Select all"
                     />
                   </TableHead>
                   <TableHead>Name</TableHead>
@@ -158,11 +164,10 @@ const StudentTable = ({ students, districts }) => {
                 {students.map((student) => (
                   <TableRow key={student._id}>
                     <TableCell>
-                      <input
-                        type="checkbox"
-                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      <Checkbox
                         checked={selectedStudents.includes(student._id)}
-                        onChange={(e) => handleSelectStudent(student._id, e.target.checked)}
+                        onCheckedChange={(checked) => handleSelectStudent(student._id, checked)}
+                        aria-label={`Select ${student.name}`}
                       />
                     </TableCell>
                     <TableCell className="font-medium">{student.name}</TableCell>

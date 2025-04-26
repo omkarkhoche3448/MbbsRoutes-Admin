@@ -29,8 +29,9 @@ export function CallNotesDialog({ isOpen, onClose, student }) {
         
         <div className="py-4">
           <div className="mb-4">
-            <div className="text-sm font-medium mb-1">Call Status</div>
+            <div className="text-sm font-medium mb-1">Status</div>
             <div className="text-sm">
+              {student.callStatus === "NOT_CALLED" && "Not Called"}
               {student.callStatus === "MISSED" && "Missed"}
               {student.callStatus === "DEAD_LEADS" && "Dead Leads"}
               {student.callStatus === "SCHEDULED" && "Scheduled"}
