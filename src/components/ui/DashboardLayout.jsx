@@ -96,13 +96,13 @@ const DashboardLayout = ({ children }) => {
         </Sidebar>
         <div className="flex-1">
           <div className="flex items-center justify-between p-4 border-b bg-white dark:bg-gray-800">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-3">
               <SidebarTrigger>
                 <Menu className="h-4 w-4" />
               </SidebarTrigger>
               <div className="font-semibold">MBBS Consultation Dashboard</div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-5">
               {mounted && (
                 <Button
                   variant="ghost" 
