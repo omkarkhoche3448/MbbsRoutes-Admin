@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { updateConsultationCallStatus } from "../../redux/slices/callReportsSlice";
 import { 
   Dialog, 
   DialogContent, 
@@ -20,6 +22,7 @@ import { useCallStatusService } from "@/services/callStatusService";
 import { useToast } from "@/hooks/use-toast";
 import { PhoneCall, PhoneMissed, Phone, Loader2, MessageSquare } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { useUser, useAuth } from "@clerk/clerk-react";
 
 const CALL_STATUS_OPTIONS = [
   { value: "NOT_CALLED", label: "Not Called", icon: <Phone className="h-4 w-4 text-gray-500" /> },
@@ -31,17 +34,22 @@ const CALL_STATUS_OPTIONS = [
 ];
 
 function CallStatusDialog({ isOpen, onClose, student, onStatusUpdated }) {
-  const { updateCallStatus, generateAICallNotes } = useCallStatusService();
+  const dispatch = useDispatch();
+  const { user } = useUser();
+  const { getToken } = useAuth();
+  const { generateAICallNotes } = useCallStatusService();
   const { toast } = useToast();
-  const [callStatus, setCallStatus] = useState(student?.callStatus || "MISSED");
+  
+  // Initialize with the student's current status or default to NOT_CALLED
+  const [callStatus, setCallStatus] = useState(student?.callStatus || "NOT_CALLED");
   const [callNotes, setCallNotes] = useState(student?.callNotes || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
-
+  
   // Reset form when student changes
   useEffect(() => {
     if (student) {
-      setCallStatus(student.callStatus || "MISSED");
+      setCallStatus(student.callStatus || "NOT_CALLED");
       setCallNotes(student.callNotes || "");
     }
   }, [student]);
@@ -53,7 +61,7 @@ function CallStatusDialog({ isOpen, onClose, student, onStatusUpdated }) {
     try {
       const aiNotes = await generateAICallNotes(student);
       setCallNotes(prevNotes => {
-        const prefix = prevNotes ? prevNotes + "\n\n--- AI Generated Notes ---\n" : "--- AI Generated Notes ---\n";
+        const prefix = prevNotes ? prevNotes + "\n\n" : "";
         return prefix + aiNotes;
       });
       
@@ -68,130 +76,144 @@ function CallStatusDialog({ isOpen, onClose, student, onStatusUpdated }) {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
+    if (!student) return;
     
-    if (!student?._id) {
-      toast({
-        title: "Error",
-        description: "Student ID is missing",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
-    
     try {
-      const result = await updateCallStatus(student._id, callStatus, callNotes);
+      const token = await getToken();
       
-      if (onStatusUpdated) {
-        onStatusUpdated(result);
-      }
+      const userName = user?.fullName || "Unknown";
+      const userId = user?.id;
       
+      await dispatch(updateConsultationCallStatus({
+        consultationId: student._id,
+        status: callStatus,
+        notes: callNotes,
+        calledBy: userName,
+        calledById: userId,
+        token
+      })).unwrap();
+      
+      toast({
+        title: "Success",
+        description: "Call status updated successfully",
+      });
+      
+      // Close the dialog
       onClose();
+      
+      // Call the callback to refresh data
+      if (onStatusUpdated) {
+        onStatusUpdated();
+      }
     } catch (error) {
       console.error("Error updating call status:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update call status",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const getStatusIcon = (status) => {
-    const option = CALL_STATUS_OPTIONS.find(opt => opt.value === status);
-    return option ? option.icon : <Phone className="h-4 w-4" />;
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Update Call Status</DialogTitle>
           <DialogDescription>
             Update the call status and notes for {student?.name}
+            <div className="text-xs mt-1">
+              You are logged in as: {user?.fullName}
+            </div>
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="status">Call Status</Label>
-              <Select
-                value={callStatus}
-                onValueChange={setCallStatus}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select call status">
-                    {getStatusIcon(callStatus)}
-                    <span className="ml-2">{CALL_STATUS_OPTIONS.find(opt => opt.value === callStatus)?.label}</span>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {CALL_STATUS_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div className="flex items-center">
-                        {option.icon}
-                        <span className="ml-2">{option.label}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="callNotes" className="text-sm font-medium">
-                Call Notes
-              </label>
-              <Textarea
-                id="callNotes"
-                placeholder="Enter notes about the call..."
-                value={callNotes}
-                onChange={(e) => setCallNotes(e.target.value)}
-                className="min-h-[100px]"
-              />
-            </div>
-            <DialogFooter className="flex flex-col sm:flex-row gap-2">
-              {/* <Button 
+        
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="status">Call Status</Label>
+            <Select 
+              value={callStatus} 
+              onValueChange={setCallStatus}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                {CALL_STATUS_OPTIONS.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex items-center gap-2">
+                      {option.icon}
+                      <span>{option.label}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="grid gap-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="notes">Call Notes</Label>
+              <Button 
                 type="button" 
                 variant="outline" 
                 size="sm"
-                onClick={handleGenerateAINotes} 
-                disabled={isSubmitting || isGeneratingNotes}
-                className="w-full sm:w-auto order-2 sm:order-1"
+                onClick={handleGenerateAINotes}
+                disabled={isGeneratingNotes}
               >
                 {isGeneratingNotes ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
                     Generating...
                   </>
                 ) : (
                   <>
-                    <MessageSquare className="mr-2 h-4 w-4" />
+                    <MessageSquare className="h-4 w-4 mr-1" />
                     Generate AI Notes
                   </>
                 )}
-              </Button> */}
-              <div className="flex gap-2 w-full sm:w-auto order-1 sm:order-2">
-                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="flex-1">
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting} className="flex-1">
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Updating...
-                    </>
-                  ) : (
-                    "Update Status"
-                  )}
-                </Button>
-              </div>
-            </DialogFooter>
+              </Button>
+            </div>
+            <Textarea
+              id="notes"
+              value={callNotes}
+              onChange={(e) => setCallNotes(e.target.value)}
+              placeholder="Enter notes about the call"
+              rows={5}
+            />
           </div>
-        </form>
-        </DialogContent>
-      </Dialog>
-    );
+        </div>
+        
+        <DialogFooter className="sm:justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                Updating...
+              </>
+            ) : (
+              'Update Status'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
-// Add this export statement at the end of the file
 export { CallStatusDialog };

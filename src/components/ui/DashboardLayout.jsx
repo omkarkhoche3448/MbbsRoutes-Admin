@@ -1,4 +1,4 @@
-import { BellRing, LayoutDashboard, Menu, Moon, Phone, Sun, Users } from "lucide-react"
+import { BellRing, LayoutDashboard, Menu, Moon, Phone, Sun, Users,BarChart  } from "lucide-react"
 
 import {
   Sidebar,
@@ -83,25 +83,9 @@ const DashboardLayout = ({ children }) => {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <a href="/students" className="flex items-center">
-                        <Users className="mr-2 h-4 w-4" />
-                        <span>Students</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <a href="/calls" className="flex items-center">
-                        <Phone className="mr-2 h-4 w-4" />
-                        <span>Call Tracking</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <a href="/notifications" className="flex items-center">
-                        <BellRing className="mr-2 h-4 w-4" />
-                        <span>Notifications</span>
+                      <a href="/call-reports" className="flex items-center">
+                        <BarChart className="mr-2 h-4 w-4" />
+                        <span>Call Reports</span>
                       </a>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -181,7 +165,7 @@ const DashboardLayout = ({ children }) => {
         </div>
       </div>
     </SidebarProvider>
-  )
-}
+  );
+};
 
-export default DashboardLayout
+export default DashboardLayout;
