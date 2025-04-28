@@ -3,10 +3,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import Index from "./pages/Index";
+import StudentsPage from "./pages/StudentsPage";
 import NotFound from "./pages/NotFound";
 import { SignedIn, SignedOut, SignIn, useUser } from "@clerk/clerk-react";
 import Profile from "./pages/Profile";
+import DashboardLayout from "./components/ui/DashboardLayout";
+import { AdminCallReport } from './components/AdminCallReport';
 
 const queryClient = new QueryClient();
 
@@ -22,7 +24,7 @@ const App = () => (
               element={
                 <>
                   <SignedIn>
-                    <Index />
+                    <StudentsPage />
                   </SignedIn>
                   <SignedOut>
                     <Navigate to="/sign-in" replace />
@@ -59,6 +61,7 @@ const App = () => (
                 </SignedIn>
               }
             />
+            <Route path="/call-reports" element={<DashboardLayout><AdminCallReport /></DashboardLayout>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
