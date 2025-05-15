@@ -438,6 +438,7 @@ const StudentTable = () => {
               onOpenCallStatus={handleOpenCallStatusDialog}
               onOpenCallNotes={handleOpenCallNotesDialog}
               allSelected={allSelected}
+              currentPage={currentPage}
             />
           )}
 
