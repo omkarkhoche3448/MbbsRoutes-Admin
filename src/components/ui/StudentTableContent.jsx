@@ -17,6 +17,12 @@ import { MessageSquare, MoreVertical, Phone } from "lucide-react";
 import { format } from "date-fns";
 import CallStatusBadge from "./CallStatusBadge";
 import { useEffect } from "react";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const StudentTableContent = ({
     filteredStudents,
@@ -85,7 +91,20 @@ const StudentTableContent = ({
                                         </div>
                                     </TableCell>
                                     <TableCell className="font-medium text-slate-900">
-                                        {student.name.length > 25 ? `${student.name.slice(0, 25)}...` : student.name}
+                                        {student.name.length > 25 ? (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        {`${student.name.slice(0, 25)}...`}
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{student.name}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ) : (
+                                            student.name
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-blue-600 hover:text-blue-800">{student.contact}</TableCell>
                                     <TableCell className="text-slate-600">{student.state}</TableCell>
@@ -117,10 +136,19 @@ const StudentTableContent = ({
                                     </TableCell>
                                     <TableCell>
                                         {student.calledBy ? (
-                                            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                                                {`${student.calledBy.slice(0, 6)}...`}
-                                            </span>
-                                        ) : "-"}
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger>
+                                                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                                                            {`${student.calledBy.slice(0, 6)}...`}
+                                                        </span>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p className="text-white">{student.calledBy}</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        ) : <div className="flex items-center ml-5">{"-"}</div>}
                                     </TableCell>
                                     <TableCell>
                                         <span className="text-slate-600">
