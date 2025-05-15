@@ -191,7 +191,7 @@ const studentsSlice = createSlice({
       // Updated top country calculation
       const countryCounts = {};
       students.forEach(student => {
-        const country = student.preferredCountry === "No Idea/ Want More Information" ? "Seeking Guidance" : student.preferredCountry;
+        const country = student.preferredCountry === "No Idea/ Want More Information" ? "Guidance" : student.preferredCountry;
         if (country) {
           countryCounts[country] = (countryCounts[country] || 0) + 1;
         }
@@ -245,7 +245,7 @@ const studentsSlice = createSlice({
         // Updated top country calculation
         const countryCounts = {};
         students.forEach(student => {
-          const country = student.preferredCountry === "No Idea/ Want More Information" ? "Seeking Guidance" : student.preferredCountry;
+          const country = student.preferredCountry === "No Idea/ Want More Information" ? "Guidance" : student.preferredCountry;
           if (country) {
             countryCounts[country] = (countryCounts[country] || 0) + 1;
           }

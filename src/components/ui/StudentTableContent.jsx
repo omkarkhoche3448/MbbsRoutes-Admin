@@ -122,7 +122,7 @@ const StudentTableContent = ({
                                     <TableCell>
                                         <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700">
                                             {student.preferredCountry === "No Idea/ Want More Information"
-                                                ? "Seeking Guidance"
+                                                ? "Guidance"
                                                 : student.preferredCountry}
                                         </span>
                                     </TableCell>

@@ -302,7 +302,7 @@ const StudentTable = () => {
         neetScore: student.neetScore ? student.neetScore.toString() : "",
         preferredCountry:
           student.preferredCountry === "No Idea/ Want More Information"
-            ? "Seeking Guidance"
+            ? "Guidance"
             : student.preferredCountry || "",
         preferredCounsellor: student.preferredCounsellor || "Not Assigned",
         callStatus: student.callStatus || "NOT_CALLED",

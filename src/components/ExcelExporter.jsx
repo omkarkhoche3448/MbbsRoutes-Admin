@@ -67,7 +67,7 @@ export const ExcelExporter = ({ startDate, endDate }) => {
           interestedIn: consultation.interestedIn || '',
           neetScore: consultation.neetScore ? consultation.neetScore.toString() : '',
           preferredCountry: consultation.preferredCountry === "No Idea/ Want More Information" 
-            ? "Seeking Guidance" 
+            ? "Guidance" 
             : (consultation.preferredCountry || ''),
           preferredCounsellor: consultation.preferredCounsellor || 'Not Assigned',
           callStatus: consultation.callStatus || 'NOT_CALLED',
