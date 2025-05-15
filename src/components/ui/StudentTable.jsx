@@ -1,64 +1,23 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Calendar } from "@/components/ui/calendar";
+import { useAuth } from "@clerk/clerk-react";
+import { useToast } from "@/hooks/use-toast";
+import StudentStats from "./StudentStats";
+import StudentFilters from "./StudentFilters";
+import StudentTableHeader from "./StudentTableHeader";
+import SelectionControls from "./SelectionControls";
+import TableTitle from "./TableTitle";
+import EmptyState from "./EmptyState";
+import StudentTableContent from "./StudentTableContent";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Eye,
-  FileBarChart,
-  Filter,
-  GraduationCap,
-  Info,
-  MoreVertical,
-  Phone,
-  PhoneCall,
-  PhoneMissed,
-  RefreshCw,
-  Search,
-  Users2,
-  MessageSquare,
-  Download,
-} from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Info, RefreshCw } from "lucide-react";
 import { CallStatusDialog } from "./CallStatusDialog";
 import { CallNotesDialog } from "./CallNotesDialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import ExcelJS from "exceljs";
-import { useAuth } from "@clerk/clerk-react";
 import {
   preferredCountries,
-  indianStates,
   districtsByState,
   callStatusOptions,
   interestedInOptions,
@@ -66,20 +25,31 @@ import {
 import {
   fetchStudents,
   setSelectedStudent,
-  clearSelectedStudent,
   setFilter,
   clearFilters,
   selectStudent,
   deselectStudent,
   selectAllStudents,
   clearSelectedStudents,
-  updateStudentCallStatus,
 } from "@/redux/slices/studentsSlice";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 const StudentTable = () => {
   const dispatch = useDispatch();
   const { getToken } = useAuth();
   const { toast } = useToast();
+
+  // Update itemsPerPage to 50
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(50);
 
   // Get data from Redux store
   const {
@@ -131,87 +101,6 @@ const StudentTable = () => {
     }));
   }, [students]);
 
-  const getCallStatusBadge = (status) => {
-    switch (status) {
-      case "COMPLETED":
-        return (
-          <Badge className="bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-500/30">
-            Completed
-          </Badge>
-        );
-      case "NO_RESPONSE":
-        return (
-          <Badge variant="destructive" className="hover:bg-destructive/90">
-            No Response
-          </Badge>
-        );
-      case "CALLBACK_REQUESTED":
-        return (
-          <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-400 hover:bg-blue-500/30">
-            Callback Requested
-          </Badge>
-        );
-      case "CALLED":
-        return (
-          <Badge className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-500/30">
-            Called
-          </Badge>
-        );
-      case "MISSED":
-        return (
-          <Badge variant="destructive" className="hover:bg-destructive/90">
-            Missed
-          </Badge>
-        );
-      case "DEAD_LEADS":
-        return (
-          <Badge className="bg-gray-500/20 text-gray-700 dark:text-gray-400 hover:bg-gray-500/30">
-            Dead Leads
-          </Badge>
-        );
-      case "SCHEDULED":
-        return (
-          <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-400 hover:bg-blue-500/30">
-            Scheduled
-          </Badge>
-        );
-      case "GOING_ABROAD":
-        return (
-          <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-400 hover:bg-purple-500/30">
-            Going Abroad
-          </Badge>
-        );
-      default:
-        return (
-          <Badge variant="outline" className="hover:bg-muted">
-            Not Called
-          </Badge>
-        );
-    }
-  };
-
-  const getCallStatusIcon = (status) => {
-    switch (status) {
-      case "COMPLETED":
-        return <PhoneCall className="h-4 w-4 text-green-500" />;
-      case "NO_RESPONSE":
-        return <PhoneMissed className="h-4 w-4 text-red-500" />;
-      case "CALLBACK_REQUESTED":
-        return <Phone className="h-4 w-4 text-blue-500" />;
-      case "CALLED":
-        return <Phone className="h-4 w-4 text-yellow-500" />;
-      case "MISSED":
-        return <PhoneMissed className="h-4 w-4 text-red-500" />;
-      case "DEAD_LEADS":
-        return <Phone className="h-4 w-4 text-gray-500" />;
-      case "SCHEDULED":
-        return <Phone className="h-4 w-4 text-blue-500" />;
-      case "GOING_ABROAD":
-        return <Phone className="h-4 w-4 text-purple-500" />;
-      default:
-        return <Phone className="h-4 w-4 text-gray-500" />;
-    }
-  };
 
   const handleOpenCallStatusDialog = (student) => {
     dispatch(setSelectedStudent(student));
@@ -270,7 +159,7 @@ const StudentTable = () => {
       const matchesDate =
         !filters.dateFilter ||
         format(new Date(student.submittedAt), "yyyy-MM-dd") ===
-          format(new Date(filters.dateFilter), "yyyy-MM-dd");
+        format(new Date(filters.dateFilter), "yyyy-MM-dd");
 
       return (
         matchesSearch &&
@@ -285,6 +174,21 @@ const StudentTable = () => {
       );
     });
   }, [studentsWithDefaultStatus, filters]);
+
+  // Calculate paginated students for the current page
+  const paginatedStudents = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredStudents.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredStudents, currentPage, itemsPerPage]);
+
+  const totalPages = useMemo(() => 
+    Math.max(1, Math.ceil(filteredStudents.length / itemsPerPage))
+  , [filteredStudents.length, itemsPerPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters]);
 
   const getUniqueCounsellors = useCallback(() => {
     if (!students.length) return [];
@@ -310,13 +214,13 @@ const StudentTable = () => {
     (e) => {
       if (e.target.checked) {
         dispatch(
-          selectAllStudents(filteredStudents.map((student) => student._id))
+          selectAllStudents(paginatedStudents.map((student) => student._id))
         );
       } else {
         dispatch(clearSelectedStudents());
       }
     },
-    [dispatch, filteredStudents]
+    [dispatch, paginatedStudents]
   );
 
   // Handle individual student selection
@@ -432,9 +336,8 @@ const StudentTable = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `students_export_${
-        new Date().toISOString().split("T")[0]
-      }.xlsx`;
+      link.download = `students_export_${new Date().toISOString().split("T")[0]
+        }.xlsx`;
       link.click();
       window.URL.revokeObjectURL(url);
 
@@ -463,16 +366,23 @@ const StudentTable = () => {
     );
   }
 
-  // Check if all filtered students are selected
+  // Check if all paginated students are selected (only the students on current page)
   const allSelected =
-    filteredStudents.length > 0 &&
-    filteredStudents.every((student) =>
+    paginatedStudents.length > 0 &&
+    paginatedStudents.every((student) =>
       selectedStudentsSet.includes(student._id)
     );
 
+  // Loading placeholder component
+  const LoadingState = () => (
+    <div className="flex items-center justify-center p-12">
+      <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+      <span className="ml-2 text-lg font-medium">Loading student data...</span>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      {/* Call Status Dialog */}
       <CallStatusDialog
         isOpen={isCallStatusDialogOpen}
         onClose={() => setIsCallStatusDialogOpen(false)}
@@ -480,567 +390,116 @@ const StudentTable = () => {
         onStatusUpdated={handleCallStatusUpdated}
       />
 
-      {/* Call Notes Dialog */}
       <CallNotesDialog
         isOpen={isCallNotesDialogOpen}
         onClose={() => setIsCallNotesDialogOpen(false)}
         student={selectedStudent}
       />
 
-      {/* Export button and selection counter */}
-      <div className="flex justify-between items-center">
-        <div>
-          <span className="ml-2 font-medium">
-            {selectedStudentsSet.length} of {filteredStudents.length} selected
-          </span>
-          {selectedStudentsSet.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={clearSelections}
-              className="ml-2"
-            >
-              Cancel All Selections
-            </Button>
-          )}
-        </div>
-        <Button
-          onClick={exportToExcel}
-          disabled={selectedStudentsSet.length === 0}
-          className="bg-green-600 hover:bg-green-700 text-white mr-10"
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Export Selected to Excel
-        </Button>
-      </div>
+      {/* Selection and Export Controls */}
+      <SelectionControls
+        selectedCount={selectedStudentsSet.length}
+        totalCount={filteredStudents.length}
+        onClearSelections={clearSelections}
+        onExport={exportToExcel}
+      />
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Card className="col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Students
-            </CardTitle>
-            <Users2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalStudents}</div>
-            <p className="text-xs text-muted-foreground">Registered students</p>
-          </CardContent>
-        </Card>
-        <Card className="col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Average NEET Score
-            </CardTitle>
-            <FileBarChart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.avgNeetScore}</div>
-            <p className="text-xs text-muted-foreground">Points</p>
-          </CardContent>
-        </Card>
-        <Card className="col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Top Country</CardTitle>
-            <GraduationCap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.topCountry}</div>
-            <p className="text-xs text-muted-foreground">Most preferred</p>
-          </CardContent>
-        </Card>
-        <Card className="col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              New This Month
-            </CardTitle>
-            <Users2 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.newThisMonth}</div>
-            <p className="text-xs text-muted-foreground">
-              Recent registrations
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Statistics Cards */}
+      <StudentStats stats={stats} />
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between">
-            <CardTitle className="text-2xl font-bold">MBBS Students</CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              className="mt-2 sm:mt-0"
-              disabled={loading}
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`}
-              />
-              Refresh
-            </Button>
-          </div>
-
-          <div className="flex flex-col space-y-4 mt-4">
-            <div className="relative w-full">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name or contact..."
-                className="pl-8 w-full"
-                value={filters.searchQuery}
-                onChange={(e) =>
-                  handleFilterChange("searchQuery", e.target.value)
-                }
-              />
-            </div>
-
-            <div className="flex flex-nowrap overflow-x-auto gap-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-6">
-              <div className="min-w-[160px] sm:min-w-0">
-                <Select
-                  value={filters.stateFilter}
-                  onValueChange={(value) =>
-                    handleFilterChange("stateFilter", value)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Filter by State" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All States</SelectItem>
-                    {Object.keys(districtsByState).map((state) => (
-                      <SelectItem key={state} value={state}>
-                        {state}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="min-w-[160px] sm:min-w-0">
-                <Select
-                  value={filters.districtFilter}
-                  onValueChange={(value) =>
-                    handleFilterChange("districtFilter", value)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Filter by District" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Districts</SelectItem>
-                    {filters.stateFilter !== "all" &&
-                    districtsByState[filters.stateFilter]
-                      ? districtsByState[filters.stateFilter].map(
-                          (district) => (
-                            <SelectItem key={district} value={district}>
-                              {district}
-                            </SelectItem>
-                          )
-                        )
-                      : null}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="min-w-[160px] sm:min-w-0">
-                <Select
-                  value={filters.countryFilter}
-                  onValueChange={(value) =>
-                    handleFilterChange("countryFilter", value)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Filter by Country" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Countries</SelectItem>
-                    {preferredCountries.map((country) => (
-                      <SelectItem key={country} value={country}>
-                        {country}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="min-w-[160px] sm:min-w-0">
-                <Select
-                  value={filters.callStatusFilter}
-                  onValueChange={(value) =>
-                    handleFilterChange("callStatusFilter", value)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Filter by Call Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All </SelectItem>
-                    {callStatusOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="min-w-[160px] sm:min-w-0">
-                <Select
-                  value={filters.counsellorFilter}
-                  onValueChange={(value) =>
-                    handleFilterChange("counsellorFilter", value)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Filter by Counsellor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Counsellors</SelectItem>
-                    {getUniqueCounsellors().map((counsellor) => (
-                      <SelectItem key={counsellor} value={counsellor}>
-                        {counsellor}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="min-w-[160px] sm:min-w-0">
-                <Select
-                  value={filters.interestedInFilter}
-                  onValueChange={(value) =>
-                    handleFilterChange("interestedInFilter", value)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Filter by Interest" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Interests</SelectItem>
-                    {interestedInOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="min-w-[160px] sm:min-w-0">
-                <Select
-                  value={filters.calledByFilter}
-                  onValueChange={(value) =>
-                    handleFilterChange("calledByFilter", value)
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Filter by Caller" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Callers</SelectItem>
-                    {getUniqueCallers().map((caller) => (
-                      <SelectItem key={caller} value={caller}>
-                        {caller}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="min-w-[160px] sm:min-w-0">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal"
-                    >
-                      <Filter className="mr-2 h-4 w-4" />
-                      {filters.dateFilter
-                        ? format(new Date(filters.dateFilter), "PPP")
-                        : "Filter by Date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={
-                        filters.dateFilter
-                          ? new Date(filters.dateFilter)
-                          : undefined
-                      }
-                      onSelect={(date) =>
-                        handleFilterChange("dateFilter", date)
-                      }
-                      initialFocus
-                    />
-                    {filters.dateFilter && (
-                      <div className="p-2 border-t border-border">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleFilterChange("dateFilter", null)}
-                          className="w-full"
-                        >
-                          Clear Date
-                        </Button>
-                      </div>
-                    )}
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          </div>
+          <TableTitle onRefresh={handleRefresh} loading={loading} />
+          <StudentFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            districtsByState={districtsByState}
+            preferredCountries={preferredCountries}
+            callStatusOptions={callStatusOptions}
+            getUniqueCounsellors={getUniqueCounsellors}
+            getUniqueCallers={getUniqueCallers}
+            interestedInOptions={interestedInOptions}
+          />
         </CardHeader>
+
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
+            <LoadingState />
           ) : filteredStudents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-64 space-y-4">
-              <Info className="h-12 w-12 text-muted-foreground" />
-              <p className="text-muted-foreground">
-                No students match your filters
-              </p>
-              <Button variant="outline" onClick={handleClearFilters}>
-                Clear Filters
-              </Button>
-            </div>
+            <EmptyState onClearFilters={handleClearFilters} />
           ) : (
-            <div className="rounded-md border overflow-hidden">
-              {/* Add this div to show the count of filtered students */}
-              <div className="p-2 bg-muted/30 border-b flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">
-                  Showing{" "}
-                  <span className="font-medium">{filteredStudents.length}</span>{" "}
-                  of <span className="font-medium">{students.length}</span>{" "}
-                  students
-                </span>
-                {(filters.searchQuery ||
-                  filters.stateFilter !== "all" ||
-                  filters.districtFilter !== "all" ||
-                  filters.countryFilter !== "all" ||
-                  filters.callStatusFilter !== "all" ||
-                  filters.counsellorFilter !== "all" ||
-                  filters.interestedInFilter !== "all" ||
-                  filters.calledByFilter !== "all" ||
-                  filters.dateFilter) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearFilters}
-                    className="text-xs"
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-              <ScrollArea className="w-full">
-                <div className="min-w-[1000px]">
-                  {" "}
-                  {/* Minimum width to prevent squishing */}
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/50">
-                        <TableHead className="w-[50px] pl-4">
-                          <div className="flex items-center justify-center">
-                            <div
-                              className={`h-5 w-5 rounded-md border ${
-                                allSelected
-                                  ? "bg-primary border-primary"
-                                  : "border-input"
-                              } flex items-center justify-center cursor-pointer`}
-                              onClick={() => {
-                                if (allSelected) {
-                                  dispatch(clearSelectedStudents());
-                                } else {
-                                  dispatch(
-                                    selectAllStudents(
-                                      filteredStudents.map(
-                                        (student) => student._id
-                                      )
-                                    )
-                                  );
-                                }
-                              }}
-                            >
-                              {allSelected && (
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  viewBox="0 0 24 24"
-                                  fill="none"
-                                  stroke="white"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="h-3 w-3"
-                                >
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              )}
-                            </div>
-                          </div>
-                        </TableHead>
-                        <TableHead className="w-[200px]">Name</TableHead>
-                        <TableHead className="w-[120px]">Contact</TableHead>
-                        <TableHead className="w-[120px]">State</TableHead>
-                        <TableHead className="w-[120px]">District</TableHead>
-                        <TableHead className="w-[120px]">
-                          Interested In
-                        </TableHead>
-                        <TableHead className="w-[100px]">NEET Score</TableHead>
-                        <TableHead className="w-[120px]">
-                          Preferred Country
-                        </TableHead>
-                        <TableHead className="w-[150px]">
-                          Selected Counsellor
-                        </TableHead>
-                        <TableHead className="w-[120px]">Call Status</TableHead>
-                        <TableHead className="w-[120px]">Called By</TableHead>
-                        <TableHead className="w-[100px]">Submitted</TableHead>
-                        <TableHead className="w-[80px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredStudents.map((student) => {
-                        const isSelected = selectedStudentsSet.includes(
-                          student._id
-                        );
-                        return (
-                          <TableRow
-                            key={student._id}
-                            className={`transition-colors hover:bg-muted/50 ${
-                              isSelected ? "bg-primary/5" : ""
-                            }`}
+            <StudentTableContent
+              filteredStudents={paginatedStudents}
+              students={students}
+              selectedStudentsSet={selectedStudentsSet}
+              onSelectAll={handleSelectAll}
+              onSelectStudent={handleSelectStudent}
+              onClearFilters={handleClearFilters}
+              onOpenCallStatus={handleOpenCallStatusDialog}
+              onOpenCallNotes={handleOpenCallNotesDialog}
+              allSelected={allSelected}
+            />
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex justify-center py-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className={currentPage === 1 ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+
+                  {Array.from({ length: totalPages }).map((_, index) => {
+                    const pageNumber = index + 1;
+                    
+                    // Show first page, last page, and pages around current page
+                    if (
+                      pageNumber === 1 ||
+                      pageNumber === totalPages ||
+                      (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                    ) {
+                      return (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(pageNumber)}
+                            isActive={currentPage === pageNumber}
+                            className="cursor-pointer"
                           >
-                            <TableCell className="pl-4">
-                              <div className="flex items-center justify-center">
-                                <div
-                                  className={`h-5 w-5 rounded-md border ${
-                                    isSelected
-                                      ? "bg-primary border-primary"
-                                      : "border-input"
-                                  } flex items-center justify-center cursor-pointer`}
-                                  onClick={() =>
-                                    handleSelectStudent(
-                                      student._id,
-                                      !isSelected
-                                    )
-                                  }
-                                >
-                                  {isSelected && (
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      viewBox="0 0 24 24"
-                                      fill="none"
-                                      stroke="white"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      className="h-3 w-3"
-                                    >
-                                      <polyline points="20 6 9 17 4 12" />
-                                    </svg>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {student.name}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {student.contact}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {student.state}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {student.district}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {student.interestedIn === "MBBS From Abroad"
-                                ? "Abroad"
-                                : student.interestedIn ===
-                                  "MBBS From Private College"
-                                ? "Private College"
-                                : student.interestedIn}
-                            </TableCell>
-                            <TableCell>
-                              {student.neetScore
-                                ? student.neetScore.toString()
-                                : ""}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {student.preferredCountry ===
-                              "No Idea/ Want More Information"
-                                ? "Seeking Guidance"
-                                : student.preferredCountry}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {student.preferredCounsellor || "Not Assigned"}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                {getCallStatusIcon(student.callStatus)}
-                                {getCallStatusBadge(student.callStatus)}
-                              </div>
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {student.calledBy || "-"}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              {new Date(
-                                student.submittedAt
-                              ).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    className="h-8 w-8 p-0"
-                                  >
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    View Details
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleOpenCallStatusDialog(student)
-                                    }
-                                  >
-                                    <PhoneCall className="mr-2 h-4 w-4 text-green-500" />
-                                    Update Call Status
-                                  </DropdownMenuItem>
-                                  {student.callNotes && (
-                                    <DropdownMenuItem
-                                      onClick={() =>
-                                        handleOpenCallNotesDialog(student)
-                                      }
-                                    >
-                                      <MessageSquare className="mr-2 h-4 w-4 text-blue-500" />
-                                      View Call Notes
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </ScrollArea>
+                            {pageNumber}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    } 
+                    // Show ellipsis for gaps
+                    else if (
+                      (pageNumber === 2 && currentPage > 3) ||
+                      (pageNumber === totalPages - 1 && currentPage < totalPages - 2)
+                    ) {
+                      return (
+                        <PaginationItem key={`ellipsis-${pageNumber}`}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className={currentPage === totalPages ? "cursor-not-allowed opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           )}
+
         </CardContent>
       </Card>
     </div>
