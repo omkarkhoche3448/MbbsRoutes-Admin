@@ -24,6 +24,29 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+// Add this function to get color classes based on caller name
+const getCallerColorClass = (callerName) => {
+  // Create a simple hash of the caller name to generate consistent colors
+  const hash = callerName.split('').reduce((acc, char) => {
+    return char.charCodeAt(0) + ((acc << 5) - acc);
+  }, 0);
+  
+  // Use the hash to select from predefined color combinations
+  const colorOptions = [
+    'bg-blue-50 text-blue-700',
+    'bg-purple-50 text-purple-700',
+    'bg-amber-50 text-amber-700',
+    'bg-emerald-50 text-emerald-700',
+    'bg-rose-50 text-rose-700',
+    'bg-cyan-50 text-cyan-700',
+    'bg-indigo-50 text-indigo-700',
+    'bg-orange-50 text-orange-700',
+  ];
+  
+  const index = Math.abs(hash) % colorOptions.length;
+  return colorOptions[index];
+};
+
 const StudentTableContent = ({
     filteredStudents,
     selectedStudentsSet,
@@ -139,12 +162,12 @@ const StudentTableContent = ({
                                             <TooltipProvider>
                                                 <Tooltip>
                                                     <TooltipTrigger>
-                                                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700">
+                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getCallerColorClass(student.calledBy)}`}>
                                                             {`${student.calledBy.slice(0, 6)}...`}
                                                         </span>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
-                                                        <p className="text-white">{student.calledBy}</p>
+                                                        <p className="text-slate-700">{student.calledBy}</p>
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </TooltipProvider>
