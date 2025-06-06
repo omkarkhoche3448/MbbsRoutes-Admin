@@ -74,6 +74,8 @@ export function CallNotesDialog({ isOpen, onClose, student }) {
         return <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-400">Scheduled</Badge>;
       case "GOING_ABROAD": 
         return <Badge className="bg-purple-500/20 text-purple-700 dark:text-purple-400">Going Abroad</Badge>;
+      case "WHATSAPP":
+        return <Badge className="bg-green-500/20 text-green-700 dark:text-green-400">WhatsApp</Badge>;
       default: 
         return <Badge variant="outline">Not Called</Badge>;
     }
@@ -90,6 +92,7 @@ export function CallNotesDialog({ isOpen, onClose, student }) {
       case "DEAD_LEADS": return <Phone className="h-4 w-4 text-gray-500" />;
       case "SCHEDULED": return <Phone className="h-4 w-4 text-blue-500" />;
       case "GOING_ABROAD": return <Phone className="h-4 w-4 text-purple-500" />;
+      case "WHATSAPP": return <Phone className="h-4 w-4 text-green-500" />;
       default: return <Phone className="h-4 w-4 text-gray-500" />;
     }
   };

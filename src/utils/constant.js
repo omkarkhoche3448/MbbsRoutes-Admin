@@ -241,6 +241,7 @@ export const callStatusOptions = [
     { value: "SCHEDULED", label: "Scheduled" },
     { value: "COMPLETED", label: "Completed" },
     { value: "GOING_ABROAD", label: "Going Abroad" },
+    { value: "WHATSAPP", label: "WhatsApp" },
 ];
 
 export const interestedInOptions = [

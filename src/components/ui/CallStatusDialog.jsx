@@ -31,6 +31,7 @@ const CALL_STATUS_OPTIONS = [
   { value: "SCHEDULED", label: "Scheduled", icon: <Phone className="h-4 w-4 text-blue-500" /> },
   { value: "COMPLETED", label: "Completed", icon: <PhoneCall className="h-4 w-4 text-green-500" /> },
   { value: "GOING_ABROAD", label: "Going Abroad", icon: <Phone className="h-4 w-4 text-purple-500" /> },
+  { value: "WHATSAPP", label: "WhatsApp", icon: <Phone className="h-4 w-4 text-green-500" /> },
 ];
 
 function CallStatusDialog({ isOpen, onClose, student, onStatusUpdated }) {
