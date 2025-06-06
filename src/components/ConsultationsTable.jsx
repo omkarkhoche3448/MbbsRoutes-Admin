@@ -22,7 +22,8 @@ const getStatusDisplay = (status) => {
     "DEAD_LEADS": "Dead Leads",
     "SCHEDULED": "Scheduled", 
     "COMPLETED": "Completed",
-    "GOING_ABROAD": "Going Abroad"
+    "GOING_ABROAD": "Going Abroad",
+    "WHATSAPP": "WhatsApp"  
   };
   return statusMap[status] || "Not Called";
 };

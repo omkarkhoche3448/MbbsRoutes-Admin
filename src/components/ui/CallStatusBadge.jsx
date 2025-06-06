@@ -52,6 +52,12 @@ const CallStatusBadge = ({ status }) => {
           badge: "bg-indigo-500/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-500/30",
           text: "Going Abroad"
         };
+      case "WHATSAPP":
+        return {
+          icon: <Phone className="h-4 w-4 text-green-500" />,
+          badge: "bg-green-500/20 text-green-700 dark:text-green-400 hover:bg-green-500/30",
+          text: "WhatsApp"
+        };
       default:
         return {
           icon: <Phone className="h-4 w-4 text-gray-400" />,
